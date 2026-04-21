@@ -9,7 +9,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "vercel-build": "npx prisma generate && npm run db:push"
+    "vercel-build": "node node_modules/prisma/build/index.js generate"
   },
   "keywords": [],
   "author": "",
