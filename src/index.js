@@ -10,6 +10,7 @@ const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/invoices', invoiceRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
