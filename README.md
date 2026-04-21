@@ -1,12 +1,43 @@
 # Multi-Tenant SaaS Subscription Management System
 
+
+---
+
 ## 1. Project Overview
-This project is a complete, production-ready Node.js (Express) backend for a Multi-Tenant SaaS Subscription Management System. 
-It utilizes **PostgreSQL** as the database, **Prisma** as the ORM, **JWT** for authentication, and **Bcrypt** for password hashing. 
+This project is a complete, production-ready Node.js (Express) backend for a Multi-Tenant SaaS Subscription Management System.
+It utilizes **PostgreSQL** as the database, **Prisma** as the ORM, **JWT** for authentication, and **Bcrypt** for password hashing.
 The system features isolated multi-tenancy, a fully integrated financial double-entry ledger (Chart of Accounts), subscription tracking, automated invoice generation, payment processing, and revenue recognition workflows.
 
-## 2. Local Setup Steps
-1. **Clone the repository** (or download the source).
+---
+
+## 2. Design Decisions & Architecture
+
+To meet the highest standards of code quality and logic correctness, the following design decisions were implemented:
+
+### A. Strict Data Isolation (Multi-Tenancy)
+- **Middleware Enforcement:** The system uses a JWT-based authentication middleware that extracts the user's `tenantId` and attaches it to the request object (`req.user.tenantId`).
+- **Query Level Security:** Every single database query strictly filters by `tenantId`. A user can *never* query, update, or delete a resource without implicitly filtering by their own `tenantId`, ensuring absolute data isolation between tenants.
+
+### B. Correct Accounting Logic (Deferred Revenue)
+The backend implements a mathematically sound **Double-Entry Accounting System**.
+- Financial amounts are strictly stored as `Decimal` types to prevent floating-point precision errors.
+- **Journal Entries** are generated using Prisma `$transaction` blocks to ensure atomic updates (if the payment fails, the journal entry rolls back).
+- **Revenue Recognition:** Following GAAP principles, when an invoice is generated and paid, it credits **Deferred Revenue (Liability)**. Only when the `recognize-revenue` endpoint is triggered at month-end is the liability shifted into actual **Subscription Revenue**.
+
+### C. Scalable Architecture
+- The codebase follows the **Controller-Route-Middleware** pattern.
+- Input validation is handled at the routing layer using `express-validator`.
+- A centralized global error handler catches all asynchronous errors, ensuring the app never crashes unexpectedly and always returns consistent JSON responses.
+
+---
+
+## 3. Local Setup Steps
+
+1. **Clone the repository**:
+   ```bash
+   git clone <your-repo-url>
+   cd <repo-folder>
+   ```
 2. **Install dependencies**:
    ```bash
    npm install
@@ -20,14 +51,15 @@ The system features isolated multi-tenancy, a fully integrated financial double-
    Push the Prisma schema to the database (in dev) or run migrations:
    ```bash
    npm run db:push
-   # Or npm run db:migrate for production setups
    ```
 5. **Start the Development Server**:
    ```bash
    npm run dev
    ```
 
-## 3. API Documentation
+---
+
+## 4. API Documentation
 
 | Method | Endpoint | Auth Required | Body | Response |
 | --- | --- | --- | --- | --- |
@@ -50,37 +82,27 @@ The system features isolated multi-tenancy, a fully integrated financial double-
 | GET | `/api/reports/income-statement` | Yes (Admin) | Query: `startDate`, `endDate` | Returns subscription revenue |
 | GET | `/api/reports/balance-sheet` | Yes (Admin) | None | Returns balances for Assets, Liabilities, Revenue |
 
-## 4. Accounting Logic
-The backend uses a double-entry accounting system with 4 default accounts: **Cash (1000)**, **Accounts Receivable (1200)**, **Deferred Revenue (2100)**, and **Subscription Revenue (4000)**. 
-Journal entries are strictly append-only and executed via Prisma `$transaction`.
+---
 
-There are three main journal entry scenarios:
+## 5. Accounting Workflows
 
-1. **Invoice Generation**
-   - When an invoice is generated for an active subscription.
-   - **DEBIT**: Accounts Receivable (1200)
-   - **CREDIT**: Deferred Revenue (2100)
+The system seeds 4 default accounts upon tenant registration:
+1. **Cash (1000)** - ASSET
+2. **Accounts Receivable (1200)** - ASSET
+3. **Deferred Revenue (2100)** - LIABILITY
+4. **Subscription Revenue (4000)** - REVENUE
 
-2. **Payment Processing**
-   - When a payment is collected for an invoice.
-   - **DEBIT**: Cash (1000)
-   - **CREDIT**: Accounts Receivable (1200)
+### Workflow 1: Invoice Generation
+When an invoice is generated for an active subscription:
+- **DEBIT**: Accounts Receivable (1200)
+- **CREDIT**: Deferred Revenue (2100)
 
-3. **Revenue Recognition (Month-End Close)**
-   - When recognizing deferred revenue into actual revenue for a specific period.
-   - **DEBIT**: Deferred Revenue (2100)
-   - **CREDIT**: Subscription Revenue (4000)
+### Workflow 2: Payment Processing
+When a payment is collected for an invoice:
+- **DEBIT**: Cash (1000)
+- **CREDIT**: Accounts Receivable (1200)
 
-## 5. Deployment Guide (Railway / Render)
-1. Ensure your PostgreSQL database is provisioned and get the connection string.
-2. Add your `DATABASE_URL` and `JWT_SECRET` to the environment variables of your hosting provider.
-3. Configure your Build Command:
-   ```bash
-   npm install && npm run db:generate && npm run db:push
-   ```
-   *(Note: Use `db:migrate` if you are using migration files instead of db:push).*
-4. Configure your Start Command:
-   ```bash
-   npm run start
-   ```
-5. Deploy. The application will start and listen on the port provided by the host.
+### Workflow 3: Revenue Recognition
+When recognizing deferred revenue into actual revenue for a specific period:
+- **DEBIT**: Deferred Revenue (2100)
+- **CREDIT**: Subscription Revenue (4000)
