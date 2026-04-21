@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const errorHandler = require('./middlewares/errorHandler');
 
 const authRoutes = require('./routes/authRoutes');
@@ -12,6 +14,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
 // Routes

@@ -1,5 +1,5 @@
 async function runAllTests() {
-  const baseUrl = 'http://localhost:3000/api';
+  const baseUrl = 'https://merp.vercel.app/api';
   let token = '';
   let planId = '';
   let customerId = '';
@@ -23,8 +23,15 @@ async function runAllTests() {
       adminPassword: 'securepassword123'
     })
   });
-  let data = await res.json();
-  console.log(data);
+  let text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+    console.log(data);
+  } catch(e) {
+    console.error("Vercel Response Error:", text);
+    return;
+  }
   token = data.data.token; // Save token
 
   console.log('\n--- 2. Testing Login ---');
