@@ -18,6 +18,10 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ success: true, message: 'API is running successfully!' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/customers', customerRoutes);
